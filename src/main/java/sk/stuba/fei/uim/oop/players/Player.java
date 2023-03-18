@@ -1,85 +1,172 @@
 package sk.stuba.fei.uim.oop.players;
 
-import sk.stuba.fei.uim.oop.cards;
-
+import sk.stuba.fei.uim.oop.cards.Card;
+import sk.stuba.fei.uim.oop.cards.Dynamite;
+import sk.stuba.fei.uim.oop.game.Game;
+import sk.stuba.fei.uim.oop.cards.BrownCard;
+import sk.stuba.fei.uim.oop.cards.BlueCard;
+import sk.stuba.fei.uim.oop.game.InvalidInputException;
 import java.util.ArrayList;
+import java.util.List;
+import java.util.Collections;
+
 
 public class Player {
-    private final String name;
-    private final List<Card> hand;
-    private final List<BlueCard> blueCards;
-    private final int maxHandSize;
+    private final int MAX_HAND_SIZE;
     private int lives;
+    private List<Card> hand;
+    private List<Card> inPlay;
+    private int position = 0;
+    private Game game;
+    private Object weapon;
 
-    public Player(String name, int maxHandSize, int startingLives) {
-        this.name = name;
-        this.hand = new ArrayList<>();
-        this.blueCards = new ArrayList<>();
-        this.maxHandSize = maxHandSize;
-        this.lives = startingLives;
+
+    public Player(int maxHandSize) {
+        MAX_HAND_SIZE = maxHandSize;
+        lives = 4;
+        hand = new ArrayList<>();
+        inPlay = new ArrayList<>();
     }
 
-    public String getName() {
-        return name;
+    public int getPosition() {
+        return position;
     }
 
-    public List<Card> getHand() {
-        return Collections.unmodifiableList(hand);
+    public List<Card> getCardsInHand() {
+        return this.hand;
+    }
+    
+
+
+    public void incrementHealth() {
+        this.lives++;
     }
 
-    public List<BlueCard> getBlueCards() {
-        return Collections.unmodifiableList(blueCards);
+    public void addCards(List<Card> cards) {
+        this.hand.addAll(cards);
     }
 
-    public int getMaxHandSize() {
-        return maxHandSize;
+
+    public void removeCard(String cardName) throws InvalidInputException {
+        for (Card card : hand) {
+            if (card.getName().equals(cardName)) {
+                hand.remove(card);
+                return;
+            }
+        }
+        throw new InvalidInputException("The player does not have the card " + cardName + " in their hand.");
+    }
+
+    public boolean hasCard(String string) {
+        for (Card card : hand) {
+            if (card.getName().equals(string)) {
+                return true;
+            }
+        }
+        return false;
+    }
+    
+
+
+    public int getDistance(Player player) {
+        int distance = Math.abs(this.getPosition() - player.getPosition());
+        if (distance > game.getPlayers().size() / 2) {
+            distance = game.getPlayers().size() - distance;
+        }
+        return distance;
+    }
+    
+    
+
+    public void drawCards(List<Card> deck, int numCards) {
+        for (int i = 0; i < numCards; i++) {
+            if (deck.isEmpty()) {
+                break;
+            }
+            Card card = deck.remove(0);
+            hand.add(card);
+        }
+    }
+
+    public void playCard(int cardIdx, Game game, Player targetPlayer) throws InvalidInputException {
+        Card card = hand.get(cardIdx);
+        if (card instanceof BlueCard) {
+            playBlueCard(card, game);
+        } else if (card instanceof BrownCard) {
+            playBrownCard(card, game, targetPlayer);
+        } else {
+            throw new InvalidInputException("Invalid card type");
+        }
+        hand.remove(cardIdx);
+    }
+
+    private void playBlueCard(Card card, Game game) throws InvalidInputException {
+        BlueCard blueCard = (BlueCard) card;
+        blueCard.playEffect(game, this);
+        inPlay.add(blueCard);
+    }
+
+    private void playBrownCard(Card card, Game game, Player targetPlayer) throws InvalidInputException {
+        BrownCard brownCard = (BrownCard) card;
+        brownCard.playEffect(game, this, targetPlayer);
+    }
+
+    public void setPendingCard(Card card) throws InvalidInputException {
+        if (inPlay.contains(card)) {
+            throw new InvalidInputException("Card is already in play");
+        }
+        inPlay.add(card);
+    }
+
+    public void endEffect(Card card) throws InvalidInputException {
+        if (!inPlay.contains(card)) {
+            throw new InvalidInputException("Card is not in play");
+        }
+        inPlay.remove(card);
+    }
+
+    public List<Card> getPending() {
+        return Collections.unmodifiableList(inPlay);
+    }
+
+    public void decrementHealth() {
+        lives--;
+    }
+
+    public void discardRandomCard() {
+        if (hand.size() > lives) {
+            int randIdx = (int) (Math.random() * hand.size());
+            Card card = hand.remove(randIdx);
+        }
+    }
+
+    public void loseLife() {
+        lives--;
     }
 
     public int getLives() {
         return lives;
     }
 
-    public void decrementLives() {
-        lives--;
+    public List<Card> getHand() {
+        return Collections.unmodifiableList(hand);
     }
 
-    public void drawCards(Deck deck, int numCards) {
-        for (int i = 0; i < numCards; i++) {
-            Card drawnCard = deck.drawCard();
-            if (drawnCard != null) {
-                hand.add(drawnCard);
-            }
-        }
+    @Override
+    public String toString() {
+        return "Player{" +
+                "lives=" + lives +
+                ", hand=" + hand +
+                ", inPlay=" + inPlay +
+                '}';
     }
 
-    public void playCard(Card card, Player targetPlayer) {
-        card.play(this, targetPlayer);
-        hand.remove(card);
-    }
+	public boolean isAlive() {
+		return false;
+	}
 
-    public boolean canDiscardCard() {
-        return hand.size() > maxHandSize;
-    }
-
-    public void discardCard(Card card) {
-        hand.remove(card);
-    }
-
-    public boolean hasBlueCard(Class<? extends BlueCard> blueCardClass) {
-        for (BlueCard blueCard : blueCards) {
-            if (blueCard.getClass().equals(blueCardClass)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    public void addBlueCard(BlueCard blueCard) {
-        blueCards.add(blueCard);
-    }
-
-    public void removeBlueCard(BlueCard blueCard) {
-        blueCards.remove(blueCard);
+    public void playCards() {
     }
 }
+
 

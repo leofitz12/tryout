@@ -1,12 +1,22 @@
 package sk.stuba.fei.uim.oop.cards;
 
-class Prison extends BlueCard {
+import sk.stuba.fei.uim.oop.game.Game;
+import sk.stuba.fei.uim.oop.players.Player;
+import sk.stuba.fei.uim.oop.cards.BlueCard;
+import sk.stuba.fei.uim.oop.game.InvalidInputException;
+
+import java.util.List;
+
+public class Prison extends BlueCard {
     public Prison() {
-        super("Prison");
+        super(Card.Prison);
     }
 
-    @Override
-    public void play(Game game, Player currentPlayer, Player targetPlayer) {
-        targetPlayer.setInJail(true);
-    }
+	@Override
+	public void playEffect(Game game, Player player) throws InvalidInputException {
+		// TODO Auto-generated method stub
+		throw new UnsupportedOperationException("Unimplemented method 'playEffect'");
+	}
 }
+
+
